@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  桌面图标（自适应图标，minSdk 26 起都支持）：舷窗水位。
+  各家桌面按自己的遮罩（vivo 圆角方形 / 圆形……）去裁，前景只画在中间安全区里。
+  monochrome 给安卓 13 的「主题图标」用。
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+     震动本身走 View.performHapticFeedback 通道，官方文档明确说不需要这个权限。
+     这里仍然声明，是给个别 ROM 兜底：有记录称小米在无此权限时，震动请求打到
+     振动服务会导致崩溃。VIBRATE 是 normal 权限，安装即授予、无弹窗、零成本。
+    -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!--
+      ★ 用 USE_EXACT_ALARM，不用 SCHEDULE_EXACT_ALARM。
+      USE_EXACT_ALARM 是 normal 权限，装完即授予、零交互、用户不可撤销；
+      而 SCHEDULE_EXACT_ALARM 是 appop，targetSdk>=33 新装默认拒绝，
+      调用 setAlarmClock/setExact 会直接抛 SecurityException。
+      本 App 是自用不上架，USE_EXACT_ALARM 是唯一零交互的路。
+    -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- 只为覆盖 minSdk 26 里的 API 31/32 设备（那两个版本该权限预授予） -->
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+
+    <!-- 通知权限：API 33 起是 dangerous，需要运行时申请 -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 重启后重排闹钟 -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 引导用户把 App 加进电池优化白名单 -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- 写入手机自带日历。两个都是 dangerous，需要运行时申请 -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+
+    <application
+        android:name=".QingJiApp"
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:roundIcon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.QingJi">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.QingJi"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <!-- 闹钟响了弹通知。exported=false：只有 AlarmManager 会发给我们 -->
+        <receiver
+            android:name=".notify.NotifyReceiver"
+            android:exported="false" />
+
+        <!-- 重启 / 升级 / 改时间 / 换时区 后重排闹钟 -->
+        <receiver
+            android:name=".notify.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <!-- 验证员指出的漏项：改时间/换时区也要重排，否则闹钟按错误的地方时刻触发 -->
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+        <!-- 桌面小组件 -->
+        <receiver
+            android:name=".widget.TodayWidgetReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/today_widget_info" />
+        </receiver>
+
+    </application>
+
+</manifest>

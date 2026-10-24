@@ -1,0 +1,22 @@
+# Gradle 构建产物
+build/
+.gradle/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# 本机环境配置（各机器路径不一样，不提交）
+local.properties
+
+# IDE
+.idea/
+*.iml
+captures/
+
+# 系统
+.DS_Store
+Thumbs.db
+
+# Kotlin ��������
+.kotlin/

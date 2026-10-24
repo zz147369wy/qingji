@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  单色图标：安卓 13 起桌面会问「要不要跟壁纸一个色」，选中时系统拿它当蒙版整体上色。
+
+  ⚠️ 一个颜色没法还原「白泡泡 + 蓝勾」和「金框 + 深玻璃」的层次，所以只保留**轮廓**：
+  窗框画成一圈（外 r33 挖掉内 r25），水里那道浪照抄，泡泡画成一圈 + 里面的勾。
+  几何数字和彩色版（ic_launcher_foreground.xml）逐条一致，只是去掉了层次和颜色。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 窗框：外圈 r33 挖掉内圈 r25，做成一个环 -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M21,54a33,33 0 1,0 66,0a33,33 0 1,0 -66,0 Z M29,54a25,25 0 1,0 50,0a25,25 0 1,0 -50,0 Z" />
+
+    <!-- 玻璃里的水，裁在窗里 -->
+    <group>
+        <clip-path android:pathData="M29,54a25,25 0 1,0 50,0a25,25 0 1,0 -50,0" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M20,58 Q29,52 38,58 T56,58 T74,58 T92,58 V90 H20Z" />
+    </group>
+
+    <!-- 水面上的泡泡勾 -->
+    <path
+        android:pathData="M44.5,47a9.5,9.5 0 1,0 19,0a9.5,9.5 0 1,0 -19,0"
+        android:strokeWidth="2.2"
+        android:strokeColor="#FFFFFFFF" />
+    <path
+        android:pathData="M49.5,47.3l3.2,3.2 6,-6.2"
+        android:strokeWidth="3"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

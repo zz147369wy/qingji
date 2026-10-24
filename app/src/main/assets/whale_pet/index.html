@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
+<title>大肥鱼</title>
+<style>
+  /* App 内常驻角色：背景透明，让 Compose 界面透出来。 */
+  :root { --bg: transparent; --ink: #1d2340; --panel: #ffffff; --line: #d9deec; --accent: #4d6bfe; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+  /* 小窗 WebView 里 body 的 height:100% 可能被算成 0（高度没传进 viewport），
+     导致 absolute inset:0 的 stage 高度为 0、SVG 缩放为 0、鲸鱼画不出来。
+     改用 fixed：直接相对 viewport 定位，不依赖 body 高度链。 */
+  .stage { position: fixed; inset: 0; overflow: hidden; touch-action: none; }
+  #stageSvg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .shadow { fill: #1d2340; opacity: .18; }
+  .bubble {
+    position: absolute; z-index: 3; max-width: 260px; padding: 8px 12px; border-radius: 14px;
+    background: var(--panel); border: 1px solid var(--line);
+    box-shadow: 0 6px 20px rgba(20, 30, 70, .12);
+    transform: translate(-50%, -100%); pointer-events: none; white-space: pre-wrap;
+    font: 14px/1.4 system-ui, "PingFang SC", "Microsoft YaHei", sans-serif; color: var(--ink);
+  }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <svg id="stageSvg" aria-hidden="true">
+    <ellipse id="shadow" class="shadow" cx="0" cy="0" rx="0" ry="0"/>
+    <g id="pet"></g>
+    <g id="fx"></g>
+  </svg>
+  <div class="bubble" id="bubble" hidden></div>
+</div>
+<script type="module">
+import { createPet, createSfx } from './pet-core.js';
+import { createWhaleFigure } from './whale/figure.js';
+
+const $ = s => document.querySelector(s);
+const stage = $('#stage'), bubble = $('#bubble');
+
+// 声音默认关着，原生调 enableSound() 后才在首次手势解锁（App 内角色通常静音）。
+let sound = false;
+const sfx = createSfx({ storageKey: 'whale-pet.sound', volume: .55 });
+['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => { if (sound) sfx.unlock(); }, { capture: true }));
+
+const figure = await createWhaleFigure(undefined, { scheme: new URLSearchParams(location.search).get('scheme') || undefined });
+
+// 这是一个「常驻小窗」：窗口只有鲸鱼大小，位置由原生 Compose 在界面上随机游走。
+// 所以这里不自由 walk（否则鲸鱼会在小窗里踱步/超界），只让它站定 + 随机表情 + 偶尔跳/坐。
+// 鲸鱼尺寸随窗口高度缩放，脚踩窗口底部。
+const ctl = createPet({ petG: $('#pet'), shadowEl: $('#shadow'), fxG: $('#fx') }, {
+  sfx, figure, roam: 'off', enter: 'drop',
+  bounds: () => {
+    const r = stage.getBoundingClientRect();
+    return { W: r.width, H: r.height, floorY: r.height - 6, S: r.height * 0.78 / 280 };
+  },
+});
+new ResizeObserver(() => ctl.resize()).observe(stage);
+
+/* ---------- 触摸：全部在 JS 层处理（WebView 吞掉触摸，Compose 收不到） ----------
+   通过 window.Android 的 JsInterface 回调原生：
+   - 拖拽 = 把手指位移增量回调给原生，原生移动整个小窗（不受小窗边界限制）
+   - 单击 = onPetTap()：鲸鱼做个表情、说一句话（原生气泡）
+   - onPetDragStart / onPetDragEnd：拖拽期间原生暂停「自己游走」，松手后重新计时
+   AI 聊天不在这里进 —— 入口是底栏正中的「空空」头像钮。 */
+let downX = 0, downY = 0, lastSX = 0, lastSY = 0, pressing = false, moved = false;
+let pendingDx = 0, pendingDy = 0, rafQueued = false;
+const android = () => (typeof window.Android !== 'undefined' && window.Android) || null;
+
+// 拖拽增量按帧合并：pointermove 每事件都可能触发，但 JsInterface 跨 JNI 有开销，
+// 高频回调会让窗口跟不上手指（「拖不动」）。这里累积增量，requestAnimationFrame 每帧只回调一次。
+// 坐标用 screenX/screenY（相对屏幕的绝对坐标），而不是 clientX/clientY（相对视口）——
+// 因为拖拽时鲸鱼窗口本身在动，视口跟着动，clientX 的坐标系会漂移，dx/dy 算错、拖不动。
+function flushDrag() {
+  rafQueued = false;
+  if (pendingDx === 0 && pendingDy === 0) return;
+  const a = android();
+  if (a && a.onPetDrag) a.onPetDrag(pendingDx, pendingDy);
+  pendingDx = 0; pendingDy = 0;
+}
+
+stage.addEventListener('pointerdown', (e) => {
+  downX = lastSX = e.screenX; downY = lastSY = e.screenY;
+  pressing = true; moved = false;
+  pendingDx = 0; pendingDy = 0;
+  try { stage.setPointerCapture(e.pointerId); } catch (_) {}
+});
+stage.addEventListener('pointermove', (e) => {
+  if (!pressing) return;
+  const dx = e.screenX - lastSX, dy = e.screenY - lastSY;
+  lastSX = e.screenX; lastSY = e.screenY;
+  if (!moved && (Math.abs(e.screenX - downX) + Math.abs(e.screenY - downY)) > 10) {
+    moved = true;
+    // 进入拖拽：原生据此暂停「自己游走」，松手后再恢复
+    const a = android();
+    if (a && a.onPetDragStart) a.onPetDragStart();
+  }
+  if (moved) {
+    pendingDx += dx; pendingDy += dy;
+    if (!rafQueued) { rafQueued = true; requestAnimationFrame(flushDrag); }
+  }
+});
+function up(e) {
+  if (!pressing) return;
+  pressing = false;
+  flushDrag();
+  const a = android();
+  if (moved) {
+    if (a && a.onPetDragEnd) a.onPetDragEnd();
+  } else {
+    // 单击（不是拖动）→ 逗一下：做个表情、说一句话
+    if (a && a.onPetTap) a.onPetTap();
+  }
+}
+function cancel() {
+  if (!pressing) return;
+  pressing = false;
+  const a = android();
+  if (moved && a && a.onPetDragEnd) a.onPetDragEnd();
+}
+stage.addEventListener('pointerup', up);
+stage.addEventListener('pointercancel', cancel);
+stage.addEventListener('pointerleave', cancel);
+
+/* ---------- 生机：不 walk，但隔几秒自己换个表情/跳一下 ---------- */
+const RANDOM_EXPR = ['happy', 'wink', 'shy', 'love', 'sleepy', 'surprised'];
+setInterval(() => {
+  if (ctl.busy()) return;
+  const r = Math.random();
+  if (r < 0.55) ctl.setExpr(RANDOM_EXPR[Math.floor(Math.random() * RANDOM_EXPR.length)]);
+  else if (r < 0.72) ctl.act('jump');
+  else if (r < 0.84) ctl.act('sit');
+}, 4200);
+
+// 说话气泡：逐字 + 口型
+let line = '', shown = 0, nextAt = 0;
+function talk(text) {
+  line = String(text ?? ''); shown = 0; nextAt = 0;
+  bubble.hidden = !line;
+  ctl.holdRoam(line ? 6 : 0);
+}
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  if (line && now >= nextAt) {
+    if (shown < line.length) { shown++; bubble.textContent = line.slice(0, shown); ctl.talk(); if (sound) sfx.babble(line[shown - 1]); nextAt = now + 70; }
+    else if (now > nextAt + 1800) { line = ''; bubble.hidden = true; }
+  }
+  ctl.step(dt);
+  ctl.render();
+  if (!bubble.hidden) { const a = ctl.anchor(); bubble.style.left = a.x + 'px'; bubble.style.top = a.y + 'px'; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- 原生桥接 API：Kotlin 通过 WebView.evaluateJavascript 调用 ---------- */
+window.WhalePet = {
+  // 表情（可带持续时间秒）：neutral happy wink love shy surprised angry sad sleepy thinking
+  setExpression(name, seconds) { ctl.holdRoam(4); ctl.setExpr(name, seconds); },
+  // 动作：stand jump hop look turn nod shake spin sit sleep dizzy walk run
+  doAction(name) { ctl.holdRoam(5); ctl.act(name); },
+  // 配色：deepseek harness chatgpt claude gemini qwen kimi minimax
+  setScheme(id) { return figure.setScheme(id, { fade: .45 }); },
+  // 说话（气泡逐字 + 口型）
+  talk,
+  // 倾听 / 思考开关
+  setListening(on) { ctl.setListening(!!on); },
+  setThinking(on) { ctl.setThinking(!!on); },
+  // 声音开关（true 后首次手势解锁）
+  enableSound(on) { sound = !!on; },
+  // 容器尺寸变化后调用
+  resize() { ctl.resize(); },
+};
+</script>
+</body>
+</html>

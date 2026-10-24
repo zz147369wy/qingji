@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  桌面小组件的配置。
+  initialLayout 用 Glance 自带的加载占位图（已确认存在于 glance 的资源里）。
+  updatePeriodMillis 是系统允许的下限 30 分钟，兜住「App 没开时跨天」的情况；
+  真正的刷新靠 App 内的数据变化监听，那个是实时的。
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="3"
+    android:targetCellHeight="2"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen"
+    android:description="@string/widget_description" />

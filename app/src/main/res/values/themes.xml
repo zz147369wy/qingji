@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 真正的配色由 Compose 里的主题系统接管，这里只是启动时的兜底 -->
+    <style name="Theme.QingJi" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#F6F1E7</item>
+        <item name="android:statusBarColor">#F6F1E7</item>
+        <item name="android:navigationBarColor">#FFFDF8</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

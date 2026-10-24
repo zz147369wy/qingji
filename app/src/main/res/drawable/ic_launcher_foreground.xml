@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  桌面图标前景：今日页那只舷窗 —— 胸针金的窗框、深海里一汪蓝水、水面浮着一颗泡泡勾。
+  （设计稿 设计稿/鲸鱼主题/图标与名字.html 方案 A「舷窗水位」，PM 2026-10-05 选定）
+
+  逐条照抄提案稿里 ICONS[0].svg 的那段 SVG，只把 <circle>/<ellipse> 换成等价的 pathData
+  （矢量图只有 path）。画布 108×108，窗框外沿 r=33 —— 正好占满自适应图标 66×66 的安全区，
+  **不要再缩放**：提案稿的预览就是这么画的，缩了会比预览小一圈。
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 实色错位投影：往下错 3，和 App 里贴纸的投影是同一套语言 -->
+    <path
+        android:fillAlpha="0.35"
+        android:fillColor="#1D2340"
+        android:pathData="M21,57a33,33 0 1,0 66,0a33,33 0 1,0 -66,0" />
+
+    <!-- 金色窗框 -->
+    <path
+        android:fillColor="#F5B83D"
+        android:pathData="M21,54a33,33 0 1,0 66,0a33,33 0 1,0 -66,0"
+        android:strokeWidth="2.5"
+        android:strokeColor="#1D2340" />
+
+    <!-- 玻璃：深海 -->
+    <path
+        android:fillColor="#0B1030"
+        android:pathData="M29,54a25,25 0 1,0 50,0a25,25 0 1,0 -50,0"
+        android:strokeWidth="2.5"
+        android:strokeColor="#1D2340" />
+
+    <!-- 水和玻璃高光，都裁在窗里 -->
+    <group>
+        <clip-path android:pathData="M29,54a25,25 0 1,0 50,0a25,25 0 1,0 -50,0" />
+        <path
+            android:fillColor="#4D6BFE"
+            android:pathData="M20,58 Q29,52 38,58 T56,58 T74,58 T92,58 V90 H20Z" />
+        <path
+            android:fillAlpha="0.6"
+            android:fillColor="#7C93FF"
+            android:pathData="M20,61 Q29,56 38,61 T56,61 T74,61 T92,61 V90 H20Z" />
+        <path
+            android:fillAlpha="0.28"
+            android:fillColor="#FFFFFF"
+            android:pathData="M34,42a11,7 0 1,0 22,0a11,7 0 1,0 -22,0" />
+    </group>
+
+    <!-- 水面上的泡泡勾 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M44.5,47a9.5,9.5 0 1,0 19,0a9.5,9.5 0 1,0 -19,0"
+        android:strokeWidth="2.2"
+        android:strokeColor="#1D2340" />
+    <path
+        android:pathData="M49.5,47.3l3.2,3.2 6,-6.2"
+        android:strokeWidth="3"
+        android:strokeColor="#4D6BFE"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
